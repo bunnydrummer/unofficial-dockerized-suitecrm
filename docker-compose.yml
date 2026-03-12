@@ -1,0 +1,60 @@
+# =============================================================================
+# docker-compose.yml — SuiteCRM 8.9 + MariaDB
+#
+# Personalizza le variabili in .env prima di avviare.
+# Poi esegui: ./setup.sh && docker compose up -d
+# =============================================================================
+
+version: "3.9"
+
+services:
+
+  db:
+    image: mariadb:10.11
+    container_name: suitecrm_db
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_general_ci
+    volumes:
+      - ${DATA_DIR}/db:/var/lib/mysql
+    networks:
+      - suitecrm_net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  suitecrm:
+    image: ${DOCKER_IMAGE:-bunnydrummer/suitecrm:latest}
+    container_name: suitecrm_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    environment:
+      TZ: ${TZ:-Europe/London}
+    volumes:
+      - ${DATA_DIR}/upload:/var/www/html/upload
+      - ${DATA_DIR}/custom:/var/www/html/custom
+      - ${DATA_DIR}/modules:/var/www/html/modules
+      - ${DATA_DIR}/cache:/var/www/html/cache
+      - ${DATA_DIR}/logs:/var/www/html/logs
+      - ${DATA_DIR}/config.php:/var/www/html/config.php
+      - ${DATA_DIR}/config_override.php:/var/www/html/config_override.php
+    networks:
+      - suitecrm_net
+
+networks:
+  suitecrm_net:
+    driver: bridge
+    name: suitecrm_net

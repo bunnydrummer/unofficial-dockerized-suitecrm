@@ -1,0 +1,19 @@
+# Environment — contiene password, non committare mai
+.env
+
+# Dati runtime
+data/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+*.tar
